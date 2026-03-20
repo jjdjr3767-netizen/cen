@@ -1,0 +1,73 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string",
+          "description": "The unique username chosen by the user"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the user account was created"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["user", "admin"],
+          "description": "The user's role in the system"
+        }
+      },
+      "required": ["username", "createdAt"]
+    },
+    "Negotiation": {
+      "title": "Negotiation",
+      "description": "A financial negotiation record",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who created the negotiation"
+        },
+        "vehicles": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "description": "List of vehicles in the negotiation"
+        },
+        "totalTax": {
+          "type": "number",
+          "description": "Total tax calculated"
+        },
+        "userProfit": {
+          "type": "number",
+          "description": "Profit for the user"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the negotiation was recorded"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["realized", "canceled"],
+          "description": "Current status of the negotiation"
+        }
+      },
+      "required": ["userId", "vehicles", "totalTax", "userProfit", "timestamp", "status"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "negotiations/{negotiationId}": {
+      "schema": "Negotiation",
+      "description": "Negotiation records"
+    }
+  }
+}

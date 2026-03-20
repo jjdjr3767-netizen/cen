@@ -1,0 +1,77 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId}
+    // Fields:
+    //   - username: string (required)
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: negotiations
+    // Document ID: {negotiationId}
+    // Fields:
+    //   - userId: string (required)
+    //   - vehicles: list of maps (required)
+    //   - totalTax: number (required)
+    //   - userProfit: number (required)
+    //   - timestamp: timestamp (required)
+    //   - status: string (required, enum: ['realized', 'canceled'])
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "jjdjr3767@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['username', 'createdAt']) &&
+             data.username is string && data.username.size() > 0 && data.username.size() < 50 &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidNegotiation(data) {
+      return data.keys().hasAll(['userId', 'vehicles', 'totalTax', 'userProfit', 'timestamp', 'status']) &&
+             data.userId == request.auth.uid &&
+             data.vehicles is list &&
+             data.totalTax is number &&
+             data.userProfit is number &&
+             data.timestamp is timestamp &&
+             data.status in ['realized', 'canceled'];
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data) &&
+                      request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    match /negotiations/{negotiationId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidNegotiation(request.resource.data);
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid && isValidNegotiation(request.resource.data);
+      allow delete: if isAdmin();
+    }
+  }
+}
